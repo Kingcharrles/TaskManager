@@ -1,5 +1,6 @@
 import java.time.LocalDateTime;
 import java.util.*;
+import java.time.format.DateTimeFormatter;
 
 public class Main {
     public static void main(String[] args) {
@@ -8,62 +9,74 @@ public class Main {
 // inti task
         System.out.println("🗂️ Welcome to the Task Creator!");
         while (true) {
-            System.out.print("\nType 'new' to create a task or 'exit' to quit: ");
+            System.out.print("\nType 'new' to create, 'remove' to delete a task, or 'exit' to quit: ");
             String command = kb.nextLine().trim().toLowerCase();
-//task creation loop
+
             if (command.equals("exit")) {
                 break;
-            } else if (!command.equals("new")) {
+            } else if (command.equals("new")) {
+                // === CREATE TASK ===
+                System.out.print("Enter task ID: ");
+                String id = kb.nextLine();
+
+                System.out.print("Enter task title: ");
+                String title = kb.nextLine();
+
+                System.out.print("Enter task description: ");
+                String description = kb.nextLine();
+
+                System.out.print("Enter task priority (HIGH, MEDIUM, LOW): ");
+                String priorityInput = kb.nextLine().toUpperCase();
+                Task.Priority priority;
+                try {
+                    priority = Task.Priority.valueOf(priorityInput);
+                } catch (IllegalArgumentException e) {
+                    System.out.println("Invalid priority. Defaulting to MEDIUM.");
+                    priority = Task.Priority.MEDIUM;
+                }
+
+                System.out.print("Enter task deadline date (MM-DD-YYYY): ");
+                String dateInput = kb.nextLine();
+
+                LocalDateTime deadline;
+                try {
+                    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MM-dd-yyyy");
+                    deadline = LocalDateTime.parse(dateInput + "T00:00:00", DateTimeFormatter.ofPattern("MM-dd-yyyy'T'HH:mm:ss"));
+                } catch (Exception e) {
+                    System.out.println("Invalid date. Using 24 hours from now.");
+                    deadline = LocalDateTime.now().plusDays(1);
+                }
+
+                Task task = new Task(id, title, description, priority, deadline, false, new ArrayList<>());
+                taskManager.createTask(task);
+                System.out.println("✅ Task created!");
+                System.out.println("Deadline: " + task.getDeadline().toLocalDate().format(DateTimeFormatter.ofPattern("MM/dd/yyyy")));
+
+            } else if (command.equals("remove")) {
+                // === REMOVE TASK ===
+                System.out.print("Enter the Task ID to delete: ");
+                String taskIdToRemove = kb.nextLine().trim();
+
+                if (taskManager.getTasksByCompletion(false).stream().anyMatch(t -> t.getId().equals(taskIdToRemove))) {
+                    taskManager.deleteTask(taskIdToRemove);
+                    System.out.println("🗑️ Task with ID '" + taskIdToRemove + "' has been removed.");
+                } else {
+                    System.out.println("⚠️ Task ID not found.");
+                }
+            } else {
                 System.out.println("Unknown command.");
-                continue;
             }
-
-            System.out.print("Enter task ID: ");
-            String id = kb.nextLine();
-
-            System.out.print("Enter task title: ");
-            String title = kb.nextLine();
-
-            System.out.print("Enter task description: ");
-            String description = kb.nextLine();
-
-            System.out.print("Enter task priority (HIGH, MEDIUM, LOW): ");
-            String priorityInput = kb.nextLine().toUpperCase();
-            Task.Priority priority;
-            try {
-                priority = Task.Priority.valueOf(priorityInput);
-            } catch (IllegalArgumentException e) {
-                System.out.println("Invalid priority. Defaulting to MEDIUM.");
-                priority = Task.Priority.MEDIUM;
-            }
-
-            System.out.print("Enter task deadline date (DD-MM-YYYY): ");
-            String dateInput = kb.nextLine();
-            System.out.print("Enter task deadline time (HH:MM): ");
-            String timeInput = kb.nextLine();
-
-            LocalDateTime deadline;
-            try {
-                deadline = LocalDateTime.parse(dateInput + " Time: " + timeInput);
-            } catch (Exception e) {
-                System.out.println("Invalid datetime format. Setting deadline to 24 hours from now.");
-                deadline = LocalDateTime.now().plusDays(1);
-            }
-//task save
-            Task task = new Task(id, title, description, priority, deadline, false, new ArrayList<>());
-            taskManager.createTask(task);
-//task recept
-            System.out.println("✅ Task created!");
-            System.out.println("ID: " + task.getId());
-            System.out.println("Title: " + task.getTitle());
-            System.out.println("Priority: " + task.getPriority());
-            System.out.println("Deadline: " + task.getDeadline());
-            System.out.println("Created at: " + task.getTimeCreated());
         }// end task creation
 
+        DateTimeFormatter dateOnlyFormat = DateTimeFormatter.ofPattern("MM/dd/yyyy");
+
         System.out.println("\n📝 Final Task List:");
-        for (Task t : taskManager.getTasksByCompletion(false)) {
-            System.out.println("- " + t.getTitle() + " (Due: " + t.getDeadline() + ")");
+        for (Task task : taskManager.getTasksByCompletion(false)) {
+            System.out.println("- " + task.getTitle() +
+                    "\n Description: " + task.getDescription() +
+                    "\n Due: " + task.getDeadline().format(dateOnlyFormat) +
+                    "\n Priority: " + task.getPriority() +
+                    "\n Task ID: " + task.getId() + " Assigned");
         } //print total task recept
 
         kb.close();
